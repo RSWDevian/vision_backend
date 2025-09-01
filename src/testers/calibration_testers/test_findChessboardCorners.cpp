@@ -235,7 +235,7 @@ int main() {
     std::cout << "=== Chessboard Corner Detection Tester ===" << std::endl;
     
     // Configuration
-    cv::Size boardSize(8, 8);  // Adjust to match your chessboard
+    cv::Size boardSize(7, 7);  // Adjust to match your chessboard
     float squareSize = 25.0f;  // Adjust to match your square size
     
     // Test images paths - adjust to your actual test images

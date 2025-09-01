@@ -183,17 +183,17 @@ namespace CalibrationWorkflow
     bool calibrateFromTestImages()
     {
         std::cout << "\n [Info]=== Stereo Calibration from Calibration Samples ===" << std::endl;
-        cv::Size boardSize(8, 8);
+        cv::Size boardSize(7, 7);
         float squareSize = 25.0f;
 
         Calibrator calibrator(boardSize, squareSize);
         // All 5 calibration sample folders
         std::vector<std::string> sampleFolders = {
-            "testingImages/Calibration_Samples/calibrate1/",
-            "testingImages/Calibration_Samples/calibrate2/",
-            "testingImages/Calibration_Samples/calibrate3/",
-            "testingImages/Calibration_Samples/calibrate4/",
-            "testingImages/Calibration_Samples/calibrate5/"};
+            "../testingImages/Calibration_Samples/calibrate1/",
+            "../testingImages/Calibration_Samples/calibrate2/",
+            "./testingImages/Calibration_Samples/calibrate3/",
+            "../testingImages/Calibration_Samples/calibrate4/",
+            "../testingImages/Calibration_Samples/calibrate5/"};
 
         int successfulPairs = 0;
         cv::Size imageSize;
