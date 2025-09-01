@@ -6,6 +6,7 @@
 #include <vector>
 #include <string>
 #include <filesystem>
+#include <fstream>
 
 //? Defining the constructor and destructor
 Calibrator::Calibrator(
@@ -184,7 +185,7 @@ namespace CalibrationWorkflow
     {
         std::cout << "\n [Info]=== Stereo Calibration from Calibration Samples ===" << std::endl;
         cv::Size boardSize(7, 7);
-        float squareSize = 25.0f;
+        float squareSize = 25000.0f;
 
         Calibrator calibrator(boardSize, squareSize);
         // All 5 calibration sample folders
@@ -294,4 +295,84 @@ namespace CalibrationWorkflow
         
         return success;
     }
+
+    //? Validate calibration images before processing
+    bool validateCalibrationImages(
+        const std::string& leftPath,
+        const std::string& rightPath
+    ){
+        cv::Mat left = cv::imread(leftPath);
+        cv::Mat right = cv::imread(rightPath);
+
+        if(left.empty() || right.empty()){
+            return false;
+        }
+
+        // Check if images are of the same size
+        if(left.size() != right.size()){
+            return false;
+        }
+
+        return true;
+    }
+
+    //? Display calibration results
+    bool validateCalibrationImages(const StereoVision& stereo){
+        std::cout << "\n=== Calibration Results ===" << std::endl;
+        std::cout << "System Status: " << (stereo.isSystemCalibrated() ? "CALIBRATED" : "NOT CALIBRATED") << std::endl;
+        return stereo.isSystemCalibrated();
+    }
 }
+
+//& Utility functions implementation
+namespace CalibrationUtils {
+    
+    //? Detect chessboard corners
+    bool detectChessboardCorners(const cv::Mat& image, cv::Size boardSize, std::vector<cv::Point2f>& corners) {
+        cv::Mat gray;
+        if (image.channels() == 3) {
+            cv::cvtColor(image, gray, cv::COLOR_BGR2GRAY);
+        } else {
+            gray = image.clone();
+        }
+
+        return cv::findChessboardCorners(gray, boardSize, corners,
+            cv::CALIB_CB_ADAPTIVE_THRESH | cv::CALIB_CB_NORMALIZE_IMAGE | cv::CALIB_CB_FAST_CHECK);
+    }
+    
+    //? Get default calibration parameters
+    CalibrationParams getDefaultCalibrationParams() {
+        CalibrationParams params;
+        return params;
+    }
+    
+    //? Validate parameters
+    bool validateParams(const CalibrationParams& params) {
+        if (params.boardSize.width <= 0 || params.boardSize.height <= 0) {
+            std::cerr << "Invalid board size!" << std::endl;
+            return false;
+        }
+        
+        if (params.squareSize <= 0) {
+            std::cerr << "Invalid square size!" << std::endl;
+            return false;
+        }
+        
+        return true;
+    }
+    
+    //? Check if calibration file exists
+    bool checkCalibrationFileExists(const std::string& filename) {
+        std::ifstream file(filename);
+        return file.good();
+    }
+    
+    // Visualize chessboard detection
+    cv::Mat visualizationChessboardDetection(const cv::Mat& image, const cv::Size& boardSize,
+                                            const std::vector<cv::Point2f>& corners, bool found) {
+        cv::Mat result = image.clone();
+        cv::drawChessboardCorners(result, boardSize, corners, found);
+        return result;
+    }
+}
+
