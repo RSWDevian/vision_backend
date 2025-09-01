@@ -179,6 +179,7 @@ void Calibrator::printCalibrationStats()
 //& Calibration Workflow Implementation
 namespace CalibrationWorkflow
 {
+    //? Testing the calibration from test checker board images
     bool calibrateFromTestImages()
     {
         std::cout << "\n [Info]=== Stereo Calibration from Calibration Samples ===" << std::endl;
@@ -277,7 +278,7 @@ namespace CalibrationWorkflow
     }
 
 
-    // Test loading existing calibration
+    //? Test loading existing calibration
     bool testLoadCalibration(const std::string& calibrationFile) {
         std::cout << "\n=== Testing Calibration Load ===" << std::endl;
         
