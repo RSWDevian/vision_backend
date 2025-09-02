@@ -185,7 +185,7 @@ namespace CalibrationWorkflow
     {
         std::cout << "\n [Info]=== Stereo Calibration from Calibration Samples ===" << std::endl;
         cv::Size boardSize(7, 7);
-        float squareSize = 25000.0f;
+        float squareSize = 5738.55f;
 
         Calibrator calibrator(boardSize, squareSize);
         // All 5 calibration sample folders

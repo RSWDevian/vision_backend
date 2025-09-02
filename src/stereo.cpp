@@ -181,18 +181,69 @@ cv::Mat StereoVision::computeDisparityBM(
     const cv::Mat& leftRect,
     const cv::Mat& rightRect
 ){
+    cv::Mat leftGray, rightGray;
+    
+    // Convert to grayscale if needed
+    if (leftRect.channels() == 3) {
+        cv::cvtColor(leftRect, leftGray, cv::COLOR_BGR2GRAY);
+    } else {
+        leftGray = leftRect;
+    }
+    
+    if (rightRect.channels() == 3) {
+        cv::cvtColor(rightRect, rightGray, cv::COLOR_BGR2GRAY);
+    } else {
+        rightGray = rightRect;
+    }
+    
     cv::Mat disparity;
     cv::Ptr<cv::StereoBM> stereoBM = cv::StereoBM::create();
-    stereoBM->compute(leftRect, rightRect, disparity);
+    stereoBM->compute(leftGray, rightGray, disparity);
     return disparity;
 }
 
 //? Compute disparity using Semi-Global Block Matching
 cv::Mat StereoVision::computeDisparitySBGM(const cv::Mat& leftRect, const cv::Mat& rightRect) {
-    cv::Ptr<cv::StereoSGBM> sgbm = cv::StereoSGBM::create(0, 96, 9);
+    cv::Mat leftGray, rightGray;
+    
+    // Convert to grayscale if needed
+    if (leftRect.channels() == 3) {
+        cv::cvtColor(leftRect, leftGray, cv::COLOR_BGR2GRAY);
+    } else {
+        leftGray = leftRect;
+    }
+    
+    if (rightRect.channels() == 3) {
+        cv::cvtColor(rightRect, rightGray, cv::COLOR_BGR2GRAY);
+    } else {
+        rightGray = rightRect;
+    }
+    
     cv::Mat disparity;
-    sgbm->compute(leftRect, rightRect, disparity);
+    cv::Ptr<cv::StereoBM> stereoBM = cv::StereoBM::create();
+    stereoBM->compute(leftGray, rightGray, disparity);
     return disparity;
+}
+
+cv::Mat StereoVision::computeDepthMap(const cv::Mat& disparity) {
+    if (disparity.empty() || Q.empty()) {
+        std::cerr << "Error: Disparity map is empty or Q matrix not initialized" << std::endl;
+        return cv::Mat();
+    }
+    
+    cv::Mat depthMap;
+    cv::reprojectImageTo3D(disparity, depthMap, Q, true);
+    
+    // Extract just the Z (depth) component
+    std::vector<cv::Mat> channels;
+    cv::split(depthMap, channels);
+    
+    if (channels.size() >= 3) {
+        return channels[2]; // Z channel contains depth
+    } else {
+        std::cerr << "Error: Failed to extract depth from 3D reprojection" << std::endl;
+        return cv::Mat();
+    }
 }
 
 //? Filter occlusions from disparity map

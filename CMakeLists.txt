@@ -23,12 +23,20 @@ add_executable(test_findChessboardCorners
     src/stereo.cpp
 )
 
+add_executable(test_depthMapping
+    src/testers/stereo_testers/test_depthMapping.cpp
+    src/stereo.cpp
+)
+
 # Include directories
 include_directories(${OpenCV_INCLUDE_DIRS})
 target_include_directories(Vision PRIVATE include/)
 
 target_include_directories(test_findChessboardCorners PRIVATE include/)
 target_link_libraries(test_findChessboardCorners ${OpenCV_LIBS})
+
+target_include_directories(test_depthMapping PRIVATE include/)
+target_link_libraries(test_depthMapping ${OpenCV_LIBS})
 
 # link libraries
 target_link_libraries(Vision ${OpenCV_LIBS}) 
