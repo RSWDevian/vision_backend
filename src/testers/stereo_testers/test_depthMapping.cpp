@@ -358,8 +358,8 @@ int main()
 
     // Configuration
     std::string calibrationFile = "stereo_calibration.xml";
-    std::string leftImagePath = "../testingImages/testPair2/left camera view.png";
-    std::string rightImagePath = "../testingImages/testPair2/right camera view.png";
+    std::string leftImagePath = "../testingImages/testPair2/left_camera_view.png";
+    std::string rightImagePath = "../testingImages/testPair2/right_camera_view.png";
 
     // Create tester
     DepthMappingTester tester(calibrationFile);
