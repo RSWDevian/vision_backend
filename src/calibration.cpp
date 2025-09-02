@@ -190,11 +190,9 @@ namespace CalibrationWorkflow
         Calibrator calibrator(boardSize, squareSize);
         // All 5 calibration sample folders
         std::vector<std::string> sampleFolders = {
-            "../testingImages/Calibration_Samples/calibrate1/",
-            "../testingImages/Calibration_Samples/calibrate2/",
-            "./testingImages/Calibration_Samples/calibrate3/",
-            "../testingImages/Calibration_Samples/calibrate4/",
-            "../testingImages/Calibration_Samples/calibrate5/"};
+            "../testingImages/Calibration_Samples_2/calibrate1/",
+            "../testingImages/Calibration_Samples_2/calibrate2/",
+            "../testingImages/Calibration_Samples_2/calibrate3/"};
 
         int successfulPairs = 0;
         cv::Size imageSize;

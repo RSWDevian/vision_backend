@@ -1,0 +1,148 @@
+#include "../include/detector/camera_optimizer.hpp"
+#include <cmath>
+#include <algorithm>
+#include <iostream>
+
+CameraOptimizer::CameraOptimizer(double baseline_m) 
+    : baseline_m_(baseline_m), baseline_mm_(baseline_m * 1000.0) {}
+
+CameraProperties CameraOptimizer::optimizeForDistance(double target_distance_m, 
+                                                    double min_player_height_px,
+                                                    double max_fov_deg,
+                                                    double player_height_m) {
+    CameraProperties optimal;
+    
+    // Standard resolutions to test
+    std::vector<cv::Size> resolutions = {
+        cv::Size(1920, 1080),  // Full HD
+        cv::Size(2560, 1440),  // QHD
+        cv::Size(3840, 2160),  // 4K
+        cv::Size(7680, 4320)   // 8K
+    };
+    
+    double player_height_mm = player_height_m * 1000.0; // Convert to mm
+    double target_distance_mm = target_distance_m * 1000.0;
+    
+    double best_score = 0;
+    
+    for (const auto& res : resolutions) {
+        // Calculate required focal length for minimum player height
+        double required_focal = (player_height_mm * min_player_height_px) / target_distance_mm;
+        
+        // Calculate FOV for this focal length
+        double fov = calculateHorizontalFOV(required_focal, res);
+        
+        // Skip if FOV exceeds maximum
+        if (fov > max_fov_deg) continue;
+        
+        // Score based on resolution and reasonable FOV
+        double score = res.width * res.height / (fov * fov);
+        
+        if (score > best_score) {
+            best_score = score;
+            optimal.focal_length_px = required_focal;
+            optimal.resolution = res;
+            optimal.fov_horizontal_deg = fov;
+            optimal.fov_vertical_deg = calculateVerticalFOV(required_focal, res);
+            
+            // Assume standard sensor properties
+            optimal.pixel_size_mm = 0.00465; // Typical for modern cameras
+            optimal.sensor_width_mm = res.width * optimal.pixel_size_mm;
+            optimal.sensor_height_mm = res.height * optimal.pixel_size_mm;
+        }
+    }
+    
+    return optimal;
+}
+
+DepthAccuracy CameraOptimizer::analyzeDepthAccuracy(const CameraProperties& camera, 
+                                                  double distance_m) const {
+    DepthAccuracy accuracy;
+    
+    double distance_mm = distance_m * 1000.0;
+    
+    accuracy.disparity_range_px = calculateDisparity(camera.focal_length_px, distance_mm);
+    accuracy.depth_resolution_cm_per_px = calculateDepthResolution(camera.focal_length_px, distance_mm) / 10.0;
+    accuracy.min_measurable_depth_m = (camera.focal_length_px * baseline_mm_) / camera.resolution.width / 1000.0;
+    accuracy.max_measurable_depth_m = calculateMaxMeasurableDepth(camera.focal_length_px) / 1000.0;
+    
+    return accuracy;
+}
+
+PlayerVisibility CameraOptimizer::analyzePlayerVisibility(const CameraProperties& camera,
+                                                        double distance_m,
+                                                        double player_height_m) const {
+    PlayerVisibility visibility;
+    
+    double distance_mm = distance_m * 1000.0;
+    double player_height_mm = player_height_m * 1000.0;
+    double player_width_mm = player_height_mm * 0.3; // Assume 30% of height
+    
+    visibility.player_height_px = (player_height_mm * camera.focal_length_px) / distance_mm;
+    visibility.player_width_px = (player_width_mm * camera.focal_length_px) / distance_mm;
+    
+    // Determine if processable
+    visibility.is_processable = visibility.player_height_px >= 100 && visibility.player_width_px >= 30;
+    
+    // Calculate detection confidence (0-1 scale)
+    double height_factor = std::min(1.0, visibility.player_height_px / 200.0);
+    double width_factor = std::min(1.0, visibility.player_width_px / 60.0);
+    visibility.detection_confidence = (height_factor + width_factor) / 2.0;
+    
+    return visibility;
+}
+
+std::pair<double, double> CameraOptimizer::findOptimalFocalRange(double min_distance_m,
+                                                               double max_distance_m,
+                                                               const cv::Size& resolution,
+                                                               double player_height_m) {
+    double player_height_mm = player_height_m * 1000.0; // Convert to mm
+    double min_player_px = 100.0;
+    
+    // Focal length for minimum distance (maximum focal length)
+    double max_focal = (player_height_mm * min_player_px) / (min_distance_m * 1000.0);
+    
+    // Focal length for maximum distance (minimum focal length)
+    double min_focal = (player_height_mm * min_player_px) / (max_distance_m * 1000.0);
+    
+    return std::make_pair(min_focal, max_focal);
+}
+
+double CameraOptimizer::calculateHorizontalFOV(double focal_length_px, const cv::Size& resolution) const {
+    return 2.0 * std::atan(resolution.width / (2.0 * focal_length_px)) * 180.0 / M_PI;
+}
+
+double CameraOptimizer::calculateVerticalFOV(double focal_length_px, const cv::Size& resolution) const {
+    return 2.0 * std::atan(resolution.height / (2.0 * focal_length_px)) * 180.0 / M_PI;
+}
+
+std::vector<CameraProperties> CameraOptimizer::generateRecommendations(double target_distance_m,
+                                                                      const std::vector<cv::Size>& resolutions,
+                                                                      double player_height_m) {
+    std::vector<CameraProperties> recommendations;
+    
+    for (const auto& res : resolutions) {
+        CameraProperties props = optimizeForDistance(target_distance_m, 100, 120, player_height_m);
+        if (props.focal_length_px > 0) {
+            props.resolution = res;
+            props.fov_horizontal_deg = calculateHorizontalFOV(props.focal_length_px, res);
+            props.fov_vertical_deg = calculateVerticalFOV(props.focal_length_px, res);
+            recommendations.push_back(props);
+        }
+    }
+    
+    return recommendations;
+}
+
+// Private helper functions
+double CameraOptimizer::calculateDisparity(double focal_length_px, double distance_mm) const {
+    return (focal_length_px * baseline_mm_) / distance_mm;
+}
+
+double CameraOptimizer::calculateDepthResolution(double focal_length_px, double distance_mm) const {
+    return (distance_mm * distance_mm) / (focal_length_px * baseline_mm_);
+}
+
+double CameraOptimizer::calculateMaxMeasurableDepth(double focal_length_px) const {
+    return focal_length_px * baseline_mm_; // For 1 pixel minimum disparity
+}
